@@ -60,7 +60,8 @@ export default function AIInsightsScreen() {
         loadSavedData();
         updateContext(selectedMonth, selectedYear);
 
-        const timer = setTimeout(() => setIsLoading(false), 400);
+        // Remove artificial delay for a faster initial load
+        setIsLoading(false);
 
         const interval = setInterval(() => {
             setRegenerateCooldown((prev) => Math.max(0, prev - 1));
@@ -68,7 +69,6 @@ export default function AIInsightsScreen() {
 
         return () => {
             clearInterval(interval);
-            clearTimeout(timer);
         };
     }, []);
 

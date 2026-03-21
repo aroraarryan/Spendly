@@ -22,12 +22,12 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
     onNextMonth
 }) => {
     const colors = useThemeColors();
-    const { getTotalByMonth } = useExpenseStore();
+    const { getTotalByMonth, expenses } = useExpenseStore();
     const { currencySymbol, monthlyBudget } = useSettingsStore();
 
     const totalSpent = useMemo(() => {
         return getTotalByMonth(currentMonth + 1, currentYear);
-    }, [currentMonth, currentYear, getTotalByMonth]);
+    }, [currentMonth, currentYear, getTotalByMonth, expenses]);
 
     const progress = Math.min(totalSpent / (monthlyBudget || 1), 1.2);
     const isOverBudget = totalSpent > (monthlyBudget || Infinity);

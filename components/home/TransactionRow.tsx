@@ -23,6 +23,8 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ expense, isLast, onDele
     const category = getCategoryById(expense.category_id);
     const date = new Date(expense.date);
     const formattedDate = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const formattedTime = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+    const fullDateDisplay = `${formattedDate} · ${formattedTime}`;
 
     const handleLongPress = () => {
         if (!onDelete) return;
@@ -74,7 +76,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ expense, isLast, onDele
                         </Text>
                     )}
                     <Text style={[styles.date, { color: colors.textMuted, fontSize: compactMode ? 10 : 12 }]}>
-                        {formattedDate}
+                        {fullDateDisplay}
                     </Text>
                 </View>
 

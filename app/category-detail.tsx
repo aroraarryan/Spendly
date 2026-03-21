@@ -19,7 +19,7 @@ export default function CategoryDetailScreen() {
     const parsedMonth = Number(month) || new Date().getMonth() + 1;
     const parsedYear = Number(year) || new Date().getFullYear();
 
-    const { getExpensesByCategory, getTotalByCategory, deleteExpense } = useExpenseStore();
+    const { getExpensesByCategory, getTotalByCategory, deleteExpense, expenses: allExpenses } = useExpenseStore();
     const { getCategoryById } = useCategoryStore();
     const { currencySymbol } = useSettingsStore();
 
@@ -29,12 +29,12 @@ export default function CategoryDetailScreen() {
         if (!category) return [];
         return getExpensesByCategory(category.id, parsedMonth, parsedYear)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [categoryId, parsedMonth, parsedYear, getExpensesByCategory, category]);
+    }, [categoryId, parsedMonth, parsedYear, getExpensesByCategory, category, allExpenses]);
 
     const totalSpent = useMemo(() => {
         if (!category) return 0;
         return getTotalByCategory(category.id, parsedMonth, parsedYear);
-    }, [categoryId, parsedMonth, parsedYear, getTotalByCategory, category]);
+    }, [categoryId, parsedMonth, parsedYear, getTotalByCategory, category, allExpenses]);
 
     const monthName = new Date(parsedYear, parsedMonth - 1).toLocaleString('default', { month: 'short' });
 

@@ -29,16 +29,13 @@ const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={[styles.percentageText, { color: isOverBudget ? colors.danger : colors.textSecondary }]}>
-                    {percentage}% Used
-                </Text>
-                {isOverBudget && (
+            {isOverBudget && (
+                <View style={[styles.header, { justifyContent: 'flex-end' }]}>
                     <Text style={[styles.overBudgetText, { color: colors.danger }]}>
                         Over by {currencySymbol}{Math.abs(remaining).toLocaleString()}
                     </Text>
-                )}
-            </View>
+                </View>
+            )}
 
             <View style={[styles.track, { height, backgroundColor: colors.surface2 }]}>
                 <View

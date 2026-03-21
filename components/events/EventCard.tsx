@@ -60,17 +60,16 @@ const EventCard: React.FC<EventCardProps> = ({
                     </View>
 
                     <View style={styles.statsRow}>
-                        <View>
-                            <Text style={[styles.label, { color: colors.textMuted }]}>SPENT</Text>
-                            <Text style={[styles.value, { color: colors.text }]}>{currencySymbol}{totalSpent.toLocaleString()}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                            <Text style={[styles.totalSpentLabel, { color: colors.textMuted }]}>Total Spent </Text>
+                            <Text style={[styles.value, { color: isOverBudget ? colors.danger : colors.text }]}>
+                                {currencySymbol}{totalSpent.toLocaleString()}
+                            </Text>
                         </View>
                         {event.total_budget > 0 && (
-                            <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={[styles.label, { color: colors.textMuted }]}>BUDGET</Text>
-                                <Text style={[styles.value, { color: isOverBudget ? colors.danger : colors.text }]}>
-                                    {currencySymbol}{event.total_budget.toLocaleString()}
-                                </Text>
-                            </View>
+                            <Text style={[styles.budgetGoalLabel, { color: colors.textSecondary }]}>
+                                of {currencySymbol}{event.total_budget.toLocaleString()}
+                            </Text>
                         )}
                     </View>
 
@@ -122,13 +121,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '500',
     },
-    label: {
-        fontSize: 10,
-        fontWeight: '700',
-        marginBottom: 4,
+    totalSpentLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    budgetGoalLabel: {
+        fontSize: 14,
+        fontWeight: '500',
     },
     value: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '700',
     },
     footer: {

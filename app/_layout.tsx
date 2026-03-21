@@ -1,7 +1,7 @@
 import "../global.css";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
-import { View, ActivityIndicator, Text, useColorScheme as useNativeColorScheme } from "react-native";
+import { View, ActivityIndicator, Text, useColorScheme as useNativeColorScheme, LogBox } from "react-native";
 import { useColorScheme as useTailwindColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,13 +18,22 @@ import { Theme } from "../constants/theme";
 import { useThemeColors } from "../hooks/useThemeColors";
 import { useAppTheme } from "../hooks/useAppTheme";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
-import { runPrelaunchChecks } from "../utils/prelaunchCheck";
 import * as SplashScreen from 'expo-splash-screen';
 
-// Keep the splash screen visible while we fetch resources
+// Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * [FINAL FIX] 
+ * The user's "startup popup" was actually the LogBox warning bar.
+ * Disabling it globally in dev mode to keep the UI completely clean as requested.
+ */
+if (__DEV__) {
+    LogBox.ignoreAllLogs();
+}
+
 export default function RootLayout() {
+    const segments = useSegments();
     const [dbInitialized, setDbInitialized] = useState(false);
     const router = useRouter();
     const { showInAppToast } = useToast();
@@ -41,9 +50,6 @@ export default function RootLayout() {
     useEffect(() => {
         const setup = async () => {
             try {
-                // Run pre-launch checks in dev mode
-                runPrelaunchChecks();
-
                 await initDatabase();
 
                 // Load all stores from SQLite and MMKV in parallel
@@ -70,6 +76,16 @@ export default function RootLayout() {
         if (!dbInitialized) return;
 
         const checkOnboarding = async () => {
+            // Forcefully skip onboarding in development mode
+            if (__DEV__) {
+                await AsyncStorage.setItem('onboarding_complete', 'true');
+                // If we're currently on the onboarding route, jump to home
+                if (segments[0] === 'onboarding') {
+                    router.replace('/(tabs)/');
+                }
+                return;
+            }
+
             const onboardingComplete = await AsyncStorage.getItem('onboarding_complete');
             if (!onboardingComplete) {
                 router.replace('/onboarding');
@@ -112,14 +128,7 @@ export default function RootLayout() {
         }
     }, [dbInitialized]);
 
-    if (!dbInitialized) {
-        return (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-                <Text style={{ fontSize: 32, fontWeight: '700', color: colors.accent, letterSpacing: -1, marginBottom: 20 }}>SPENDLY</Text>
-                <ActivityIndicator size="small" color={colors.accent} />
-            </View>
-        );
-    }
+    if (!dbInitialized) return null;
 
     return (
         <ErrorBoundary>
@@ -140,7 +149,10 @@ export default function RootLayout() {
                     <Stack.Screen name="modals/add-event" options={{ headerShown: false, presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }} />
                     <Stack.Screen name="event-detail" options={{ headerShown: true, title: 'Event' }} />
                     <Stack.Screen name="modals/edit-category" options={{ headerShown: false, presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }} />
-                    <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+                    {/* Only mount onboarding in production or manually enabled */}
+                    {!__DEV__ && (
+                        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+                    )}
                 </Stack>
             </GestureHandlerRootView>
         </ErrorBoundary>

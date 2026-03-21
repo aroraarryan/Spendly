@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEventStore } from '@/store/eventStore';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useSettingsStore } from '@/store/settingsStore';
 import { haptic } from '@/utils/haptics';
 import FAB from '@/components/shared/FAB';
 import EmptyState from '@/components/shared/EmptyState';
@@ -17,6 +18,7 @@ export default function EventsScreen() {
     const colors = useThemeColors();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { currencySymbol } = useSettingsStore();
 
     // Selectors - grab raw arrays
     const events = useEventStore(state => state.events);
@@ -54,10 +56,8 @@ export default function EventsScreen() {
     }, [events, expenses]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
+        // Remove artificial delay for a faster initial load
+        setIsLoading(false);
     }, []);
 
     const togglePastEvents = () => {
@@ -75,9 +75,9 @@ export default function EventsScreen() {
     const renderHeader = () => (
         <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.background }]}>
             <View>
-                <Text style={{ fontSize: 28, fontWeight: '800', color: colors.text }}>Events</Text>
+                <Text style={{ fontSize: 28, fontWeight: '800', color: colors.text }}>Dreaming Big</Text>
                 <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textMuted, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Track budgets for special occasions
+                    Your active goals
                 </Text>
             </View>
 
@@ -113,6 +113,17 @@ export default function EventsScreen() {
                     contentContainerStyle={styles.scrollContent}
                 >
                     <View style={styles.section}>
+                        {activeEventsList.length > 0 && (
+                            <View style={[styles.smartSuggestCard, { backgroundColor: colors.accentLight }]}>
+                                <View style={styles.smartSuggestHeader}>
+                                    <Ionicons name="sparkles" size={16} color={colors.accent} />
+                                    <Text style={[styles.smartSuggestTitle, { color: colors.accent }]}>Smart Suggest</Text>
+                                </View>
+                                <Text style={[styles.smartSuggestText, { color: colors.text }]}>
+                                    Add {currencySymbol}2,400 to hit your next goal early.
+                                </Text>
+                            </View>
+                        )}
                         <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Events</Text>
                         {activeEventsList.length === 0 ? (
                             <EmptyState
@@ -211,5 +222,27 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 16,
         paddingVertical: 8,
+    },
+    smartSuggestCard: {
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+    },
+    smartSuggestHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    smartSuggestTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginLeft: 6,
+    },
+    smartSuggestText: {
+        fontSize: 15,
+        fontWeight: '500',
+        lineHeight: 22,
     }
 });

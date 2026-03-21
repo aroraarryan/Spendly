@@ -36,12 +36,8 @@ export default function HomeScreen() {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Minimum loading skeleton show time to prevent jarring flash
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 400);
-
-        return () => clearTimeout(timer);
+        // Remove artificial delay for a faster initial load
+        setIsLoading(false);
     }, []);
 
     const monthExpenses = useMemo(() => {

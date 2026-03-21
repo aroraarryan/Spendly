@@ -84,6 +84,7 @@ function AddExpenseContent({ expenseId, preselectedEventId, onClose }: { expense
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
     const [note, setNote] = useState('');
     const [eventId, setEventId] = useState<string | null>(null);
     const [isRecurring, setIsRecurring] = useState(false);
@@ -258,14 +259,25 @@ function AddExpenseContent({ expenseId, preselectedEventId, onClose }: { expense
                     </View>
 
                     <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginBottom: 8 }]}>Date</Text>
-                    <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
-                        <NeoCard padding={14} backgroundColor={colors.surface2} style={styles.pickerCard}>
-                            <Text style={[styles.pickerText, { color: colors.text }]}>
-                                {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </Text>
-                            <Ionicons name="calendar-outline" size={18} color={colors.accent} />
-                        </NeoCard>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.7} style={{ flex: 1 }}>
+                            <NeoCard padding={14} backgroundColor={colors.surface2} style={styles.pickerCard}>
+                                <Text style={[styles.pickerText, { color: colors.text }]}>
+                                    {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </Text>
+                                <Ionicons name="calendar-outline" size={18} color={colors.accent} />
+                            </NeoCard>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setShowTimePicker(true)} activeOpacity={0.7} style={{ flex: 1 }}>
+                            <NeoCard padding={14} backgroundColor={colors.surface2} style={styles.pickerCard}>
+                                <Text style={[styles.pickerText, { color: colors.text }]}>
+                                    {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                                <Ionicons name="time-outline" size={18} color={colors.accent} />
+                            </NeoCard>
+                        </TouchableOpacity>
+                    </View>
 
                     <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 24, marginBottom: 8 }]}>Link to Event (Optional)</Text>
                     <TouchableOpacity
@@ -353,7 +365,11 @@ function AddExpenseContent({ expenseId, preselectedEventId, onClose }: { expense
                                 display="spinner"
                                 textColor={colors.text}
                                 onChange={(event, selectedDate) => {
-                                    if (selectedDate) setDate(selectedDate);
+                                    if (selectedDate) {
+                                        const newDate = new Date(date);
+                                        newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                                        setDate(newDate);
+                                    }
                                 }}
                             />
                         </Animated.View>
@@ -365,7 +381,46 @@ function AddExpenseContent({ expenseId, preselectedEventId, onClose }: { expense
                         display="default"
                         onChange={(event, selectedDate) => {
                             setShowDatePicker(false);
-                            if (selectedDate) setDate(selectedDate);
+                            if (selectedDate) {
+                                const newDate = new Date(date);
+                                newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                                setDate(newDate);
+                            }
+                        }}
+                    />
+                )
+            )}
+
+            {showTimePicker && (
+                Platform.OS === 'ios' ? (
+                    <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
+                        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={() => setShowTimePicker(false)} />
+                        <Animated.View style={{ backgroundColor: colors.background, paddingBottom: insets.bottom, position: 'absolute', bottom: 0, width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>Select Time</Text>
+                                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                                    <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 16 }}>Done</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                                value={date}
+                                mode="time"
+                                display="spinner"
+                                textColor={colors.text}
+                                onChange={(event, selectedTime) => {
+                                    if (selectedTime) setDate(selectedTime);
+                                }}
+                            />
+                        </Animated.View>
+                    </View>
+                ) : (
+                    <DateTimePicker
+                        value={date}
+                        mode="time"
+                        display="default"
+                        onChange={(event, selectedTime) => {
+                            setShowTimePicker(false);
+                            if (selectedTime) setDate(selectedTime);
                         }}
                     />
                 )

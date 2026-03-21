@@ -48,10 +48,8 @@ export default function AnalyticsScreen() {
     );
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
+        // Remove artificial delay for a faster initial load
+        setIsLoading(false);
     }, []);
 
     const monthExpenses = useMemo(() => {
