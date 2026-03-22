@@ -21,6 +21,7 @@ interface CategoryState {
     getCategoryById: (id: string) => CategoryRow | undefined;
     resetCategories: () => Promise<void>;
     deleteCategoryAndReassign: (id: string) => Promise<void>;
+    importCategories: (categories: CategoryRow[]) => Promise<void>;
 }
 
 export const useCategoryStore = create<CategoryState>((set, get) => ({
@@ -81,5 +82,18 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
         }
 
         await get().deleteCategory(id);
+    },
+    importCategories: async (importedCategories) => {
+        const currentCategories = get().categories;
+        const toImport = importedCategories.filter(ic =>
+            ic.is_custom === 1 &&
+            !currentCategories.some(cc => cc.name.toLowerCase() === ic.name.toLowerCase())
+        );
+
+        if (toImport.length > 0) {
+            const { bulkInsertCategories } = await import('../services/database');
+            await bulkInsertCategories(toImport);
+            await get().loadCategories();
+        }
     }
 }));

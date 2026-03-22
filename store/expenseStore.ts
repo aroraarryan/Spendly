@@ -32,6 +32,7 @@ interface ExpenseState {
     getTotalByCategory: (categoryId: string, month: number, year: number) => number;
     clearExpenses: () => Promise<void>;
     reloadExpenses: () => Promise<void>;
+    importExpenses: (expenses: ExpenseRow[]) => Promise<void>;
 }
 
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
@@ -103,6 +104,11 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         set({ expenses: [] });
     },
     reloadExpenses: async () => {
+        await get().loadExpenses();
+    },
+    importExpenses: async (expenses) => {
+        const { bulkInsertExpenses } = await import('../services/database');
+        await bulkInsertExpenses(expenses);
         await get().loadExpenses();
     }
 }));

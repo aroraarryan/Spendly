@@ -13,6 +13,8 @@ interface NeoCardProps {
     neonAccent?: boolean;
     borderHeight?: number;
     borderColor?: string;
+    marginBottom?: number;
+    marginTop?: number;
 }
 
 const NeoCard: React.FC<NeoCardProps> = ({
@@ -23,6 +25,8 @@ const NeoCard: React.FC<NeoCardProps> = ({
     borderRadius = 16,
     neonAccent = false,
     borderColor,
+    marginBottom,
+    marginTop,
 }) => {
     const colors = useThemeColors();
 
@@ -35,6 +39,8 @@ const NeoCard: React.FC<NeoCardProps> = ({
                     backgroundColor: backgroundColor || colors.surface,
                     borderColor: borderColor || colors.border,
                     borderRadius,
+                    marginBottom,
+                    marginTop,
                 },
                 neonAccent && { borderTopWidth: 3, borderTopColor: colors.accent },
                 style,

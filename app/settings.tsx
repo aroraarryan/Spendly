@@ -14,6 +14,7 @@ import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MMKV } from 'react-native-mmkv';
 import { useSettingsStore } from '../store/settingsStore';
 import { useExpenseStore } from '../store/expenseStore';
 import { useCategoryStore } from '../store/categoryStore';
@@ -37,7 +38,7 @@ import ErrorBoundary from '../components/shared/ErrorBoundary';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native';
 
-import { exportExpensesAsCSV, exportEventsAsCSV } from '../utils/exportHelpers';
+import { exportDetailedExpensesCSV, exportDetailedEventsCSV } from '../utils/exportHelpers';
 import {
     cancelAllNotifications,
     registerForPushNotifications,
@@ -62,6 +63,15 @@ export default function SettingsScreen() {
     const { expenses, loadExpenses } = useExpenseStore();
     const { categories, loadCategories } = useCategoryStore();
     const { events, loadEvents } = useEventStore();
+    const [lastBackupDate, setLastBackupDate] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadBackupDate = async () => {
+            const val = await AsyncStorage.getItem('last_backup_date');
+            setLastBackupDate(val);
+        };
+        loadBackupDate();
+    }, []);
 
     // Modal States
     const [isBudgetVisible, setIsBudgetVisible] = useState(false);
@@ -96,8 +106,11 @@ export default function SettingsScreen() {
     const handleExportExpenses = async () => {
         setIsExporting(true);
         try {
-            await exportExpensesAsCSV(expenses, categories, events, settings.currencySymbol);
+            await exportDetailedExpensesCSV(expenses, categories, events, settings.currencySymbol);
             showInAppToast('Export Complete', 'Expenses exported successfully');
+            const now = new Date().toISOString();
+            await AsyncStorage.setItem('last_backup_date', now);
+            setLastBackupDate(now);
         } catch (e) {
             Alert.alert('Export Failed', 'An error occurred while exporting data.');
         } finally {
@@ -108,7 +121,7 @@ export default function SettingsScreen() {
     const handleExportEvents = async () => {
         setIsExporting(true);
         try {
-            await exportEventsAsCSV(events, expenses, settings.currencySymbol);
+            await exportDetailedEventsCSV(events, expenses, categories, settings.currencySymbol);
             showInAppToast('Export Complete', 'Events exported successfully');
         } catch (e) {
             Alert.alert('Export Failed', 'An error occurred while exporting data.');
@@ -423,10 +436,18 @@ export default function SettingsScreen() {
                     {/* Data & Privacy */}
                     <SettingsSection title="Data & Privacy">
                         <SettingsRow
+                            icon="📊"
+                            iconBgColor="#EEF0FF"
+                            label="Data Management"
+                            sublabel="Export, import, and manage your data"
+                            onPress={() => router.push('/data-management')}
+                            showChevron
+                        />
+                        <SettingsRow
                             icon="📤"
                             iconBgColor="#DCFCE7"
                             label="Export as CSV"
-                            sublabel="Download all your expense data"
+                            sublabel={`Last backup: ${lastBackupDate ? new Date(lastBackupDate).toLocaleDateString() : 'Never'}`}
                             rightElement={isExporting ? <ActivityIndicator size="small" color={colors.accent} /> : null}
                             onPress={handleExportExpenses}
                             showChevron

@@ -17,8 +17,8 @@ export default function NumpadButton({ value, onPress, isWide = false }: NumpadB
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
-            backgroundColor: withTiming(pressed.value ? colors.surface2 : colors.surface, { duration: 100 }),
-            transform: [{ scale: withSpring(pressed.value ? 0.92 : 1) }],
+            backgroundColor: withTiming(pressed.value === 1 ? colors.surface2 : colors.surface, { duration: 100 }),
+            transform: [{ scale: withSpring(pressed.value === 1 ? 0.92 : 1) }],
         };
     });
 

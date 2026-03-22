@@ -150,9 +150,7 @@ export default function RootLayout() {
                     <Stack.Screen name="event-detail" options={{ headerShown: true, title: 'Event' }} />
                     <Stack.Screen name="modals/edit-category" options={{ headerShown: false, presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }} />
                     {/* Only mount onboarding in production or manually enabled */}
-                    {!__DEV__ && (
-                        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
-                    )}
+                    <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
                 </Stack>
             </GestureHandlerRootView>
         </ErrorBoundary>

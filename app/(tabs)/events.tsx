@@ -69,7 +69,7 @@ export default function EventsScreen() {
     };
 
     const chevronStyle = useAnimatedStyle(() => ({
-        transform: [{ rotateZ: `${rotation.value}deg` }]
+        transform: [{ rotate: `${rotation.value}deg` }]
     }));
 
     const renderHeader = () => (

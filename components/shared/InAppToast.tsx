@@ -17,9 +17,11 @@ const InAppToast = () => {
     const insets = useSafeAreaInsets();
     const colors = useThemeColors();
     const translateY = useSharedValue(-200);
+    const [isRendered, setIsRendered] = React.useState(visible);
 
     useEffect(() => {
         if (visible) {
+            setIsRendered(true);
             translateY.value = withSpring(insets.top + 12, {
                 damping: 18,
                 stiffness: 200,
@@ -31,16 +33,17 @@ const InAppToast = () => {
 
             return () => clearTimeout(timer);
         } else {
-            translateY.value = withTiming(-200);
+            translateY.value = withTiming(-200, { duration: 250 }, (finished) => {
+                if (finished) {
+                    runOnJS(setIsRendered)(false);
+                }
+            });
         }
     }, [visible, insets.top]);
 
     const dismiss = () => {
-        translateY.value = withTiming(-200, { duration: 250 }, (finished) => {
-            if (finished) {
-                runOnJS(hideToast)();
-            }
-        });
+        if (!visible) return;
+        hideToast();
     };
 
     const animatedStyle = useAnimatedStyle(() => {
@@ -49,7 +52,7 @@ const InAppToast = () => {
         };
     });
 
-    if (!visible && translateY.value === -200) return null;
+    if (!isRendered) return null;
 
     return (
         <Animated.View style={[styles.container, animatedStyle]}>

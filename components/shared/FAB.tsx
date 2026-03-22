@@ -21,16 +21,16 @@ const FAB: React.FC<FABProps> = ({ onPress, icon = 'add', style }) => {
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
-            transform: [{ scale: withSpring(scale.value, { damping: 15, stiffness: 200 }) }],
+            transform: [{ scale: scale.value }],
         };
     });
 
     const handlePressIn = () => {
-        scale.value = 0.95;
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 200 });
     };
 
     const handlePressOut = () => {
-        scale.value = 1;
+        scale.value = withSpring(1, { damping: 15, stiffness: 200 });
     };
 
     const handlePress = () => {

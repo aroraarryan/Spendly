@@ -22,6 +22,7 @@ interface EventState {
     getEventById: (id: string) => EventRow | undefined;
     clearEvents: () => Promise<void>;
     deleteEventAndUntag: (id: string) => Promise<void>;
+    importEvents: (events: EventRow[]) => Promise<void>;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -80,5 +81,17 @@ export const useEventStore = create<EventState>((set, get) => ({
         await useExpenseStore.getState().reloadExpenses();
 
         await get().deleteEvent(id);
+    },
+    importEvents: async (importedEvents) => {
+        const currentEvents = get().events;
+        const toImport = importedEvents.filter(ie =>
+            !currentEvents.some(ce => ce.name === ie.name && ce.start_date === ie.start_date)
+        );
+
+        if (toImport.length > 0) {
+            const { bulkInsertEvents } = await import('../services/database');
+            await bulkInsertEvents(toImport);
+            await get().loadEvents();
+        }
     }
 }));

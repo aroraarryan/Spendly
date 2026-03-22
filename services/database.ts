@@ -259,3 +259,82 @@ export const untagEventExpenses = async (eventId: string) => {
 export const getExpensesByEvent = async (eventId: string) => {
     return await db.getAllAsync(`SELECT * FROM expenses WHERE event_id = ? ORDER BY date DESC`, eventId);
 };
+
+export const getAllBudgets = async () => {
+    return await db.getAllAsync(`SELECT * FROM budgets`);
+};
+
+export const bulkInsertExpenses = async (expenses: any[]) => {
+    await db.withTransactionAsync(async () => {
+        const statement = await db.prepareAsync(
+            `INSERT OR IGNORE INTO expenses (id, amount, category_id, event_id, note, date, is_recurring, recurring_interval, photo_uri, created_at)
+             VALUES ($id, $amount, $category_id, $event_id, $note, $date, $is_recurring, $recurring_interval, $photo_uri, $created_at)`
+        );
+        try {
+            for (const exp of expenses) {
+                await statement.executeAsync({
+                    $id: exp.id,
+                    $amount: exp.amount,
+                    $category_id: exp.category_id,
+                    $event_id: exp.event_id || null,
+                    $note: exp.note || null,
+                    $date: exp.date,
+                    $is_recurring: exp.is_recurring || 0,
+                    $recurring_interval: exp.recurring_interval || null,
+                    $photo_uri: exp.photo_uri || null,
+                    $created_at: exp.created_at || new Date().toISOString()
+                });
+            }
+        } finally {
+            await statement.finalizeAsync();
+        }
+    });
+};
+
+export const bulkInsertCategories = async (categories: any[]) => {
+    await db.withTransactionAsync(async () => {
+        const statement = await db.prepareAsync(
+            `INSERT OR IGNORE INTO categories (id, name, icon, color, monthly_budget, is_custom, created_at)
+             VALUES ($id, $name, $icon, $color, $monthly_budget, $is_custom, $created_at)`
+        );
+        try {
+            for (const cat of categories) {
+                await statement.executeAsync({
+                    $id: cat.id,
+                    $name: cat.name,
+                    $icon: cat.icon,
+                    $color: cat.color,
+                    $monthly_budget: cat.monthly_budget || 0,
+                    $is_custom: cat.is_custom || 0,
+                    $created_at: cat.created_at || new Date().toISOString()
+                });
+            }
+        } finally {
+            await statement.finalizeAsync();
+        }
+    });
+};
+
+export const bulkInsertEvents = async (events: any[]) => {
+    await db.withTransactionAsync(async () => {
+        const statement = await db.prepareAsync(
+            `INSERT OR IGNORE INTO events (id, name, start_date, end_date, total_budget, cover_color, created_at)
+             VALUES ($id, $name, $start_date, $end_date, $total_budget, $cover_color, $created_at)`
+        );
+        try {
+            for (const event of events) {
+                await statement.executeAsync({
+                    $id: event.id,
+                    $name: event.name,
+                    $start_date: event.start_date,
+                    $end_date: event.end_date,
+                    $total_budget: event.total_budget || 0,
+                    $cover_color: event.cover_color,
+                    $created_at: event.created_at || new Date().toISOString()
+                });
+            }
+        } finally {
+            await statement.finalizeAsync();
+        }
+    });
+};
