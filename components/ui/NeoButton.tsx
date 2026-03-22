@@ -39,6 +39,7 @@ const NeoButton: React.FC<NeoButtonProps> = ({
     disabled = false,
     loading = false,
     style,
+    glowing,
     children,
 }) => {
     const colors = useThemeColors();
@@ -93,6 +94,14 @@ const NeoButton: React.FC<NeoButtonProps> = ({
 
     const { bg, text, borderWidth, borderColor, shadow } = getStyles();
 
+    const glowStyle = glowing ? {
+        shadowColor: bg,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
+        elevation: 15,
+    } : {};
+
     const getPadding = () => {
         switch (size) {
             case 'sm': return { py: 8, px: 16, fontSize: Theme.typography.sizes.xs };
@@ -126,6 +135,7 @@ const NeoButton: React.FC<NeoButtonProps> = ({
                         flexDirection: 'row',
                     },
                     shadow,
+                    glowStyle,
                     animatedStyle,
                     disabled && { opacity: 0.5 },
                 ]}

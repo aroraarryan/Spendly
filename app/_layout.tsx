@@ -11,7 +11,12 @@ import { useCategoryStore } from "../store/categoryStore";
 import { useExpenseStore } from "../store/expenseStore";
 import { useEventStore } from "../store/eventStore";
 import { useSettingsStore } from "../store/settingsStore";
+import { useIncomeStore } from "../store/incomeStore";
+import { useSavingsStore } from "../store/savingsStore";
+import { useInvestmentStore } from "../store/investmentStore";
+import { useNetWorthStore } from "../store/netWorthStore";
 import { registerForPushNotifications, clearBadge } from "../services/notificationService";
+import { useAuthStore } from "../store/authStore";
 import { useToast } from "../hooks/useToast";
 import InAppToast from "../components/shared/InAppToast";
 import { Theme } from "../constants/theme";
@@ -23,11 +28,6 @@ import * as SplashScreen from 'expo-splash-screen';
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
-/**
- * [FINAL FIX] 
- * The user's "startup popup" was actually the LogBox warning bar.
- * Disabling it globally in dev mode to keep the UI completely clean as requested.
- */
 if (__DEV__) {
     LogBox.ignoreAllLogs();
 }
@@ -39,6 +39,14 @@ export default function RootLayout() {
     const { showInAppToast } = useToast();
     const { setColorScheme } = useTailwindColorScheme();
     const { loadSettings } = useSettingsStore();
+
+    const { session, initialized, initialize: initAuth } = useAuthStore();
+
+    const { loadIncomeSources, loadIncome } = useIncomeStore.getState();
+    const { loadGoals } = useSavingsStore.getState();
+    const { loadInvestments, loadInvestmentTypes, loadSIPs, loadFixedDeposits } = useInvestmentStore.getState();
+    const { loadAssets, loadLiabilities, loadHistory } = useNetWorthStore.getState();
+
     const theme = useAppTheme();
     const colors = useThemeColors();
 
@@ -48,16 +56,36 @@ export default function RootLayout() {
     }, [theme]);
 
     useEffect(() => {
+        initAuth();
+    }, []);
+
+    // Database Initialization & Data Loading
+    useEffect(() => {
         const setup = async () => {
+            if (!session) return;
+            
             try {
                 await initDatabase();
 
-                // Load all stores from SQLite and MMKV in parallel
+                const now = new Date();
+                const currentMonth = now.getMonth() + 1;
+                const currentYear = now.getFullYear();
+
                 await Promise.all([
                     useCategoryStore.getState().loadCategories(),
                     useExpenseStore.getState().loadExpenses(),
                     useEventStore.getState().loadEvents(),
-                    loadSettings()
+                    loadSettings(),
+                    loadIncomeSources(),
+                    loadIncome(currentMonth, currentYear),
+                    loadGoals(),
+                    loadInvestments(),
+                    loadInvestmentTypes(),
+                    loadSIPs(),
+                    loadFixedDeposits(),
+                    loadAssets(),
+                    loadLiabilities(),
+                    loadHistory()
                 ]);
 
                 setDbInitialized(true);
@@ -69,42 +97,37 @@ export default function RootLayout() {
             }
         };
         setup();
-    }, []);
+    }, [session]);
 
-    // Handle redirection once initialized
+    // Handle Auth Redirection & Splash Hiding
     useEffect(() => {
-        if (!dbInitialized) return;
+        if (!initialized) return;
 
-        const checkOnboarding = async () => {
-            // Forcefully skip onboarding in development mode
-            if (__DEV__) {
-                await AsyncStorage.setItem('onboarding_complete', 'true');
-                // If we're currently on the onboarding route, jump to home
-                if (segments[0] === 'onboarding') {
-                    router.replace('/(tabs)/');
-                }
-                return;
-            }
+        const inAuthGroup = segments[0] === 'auth';
+        const inOnboarding = segments[0] === 'onboarding';
 
-            const onboardingComplete = await AsyncStorage.getItem('onboarding_complete');
-            if (!onboardingComplete) {
+        if (!session) {
+            // Hide splash screen if no session (setup didn't run)
+            SplashScreen.hideAsync().catch(() => {});
+            
+            if (!inAuthGroup && !inOnboarding) {
                 router.replace('/onboarding');
             }
-        };
+        } else {
+            if (inAuthGroup || inOnboarding) {
+                router.replace('/(tabs)');
+            }
+            // setup() handles hideAsync for the session case
+        }
+    }, [session, initialized, segments]);
 
-        checkOnboarding();
-    }, [dbInitialized]);
-
+    // Post-Initialization Setup (Notifications)
     useEffect(() => {
-        if (!dbInitialized) return;
+        if (!dbInitialized || !session) return;
 
-        // Register for notifications on app start
         registerForPushNotifications();
-
-        // Clear badge when app opens
         clearBadge();
 
-        // Handle notification tap — navigate to correct screen
         const subscription = Notifications.addNotificationResponseReceivedListener(response => {
             const screen = response.notification.request.content.data?.screen;
             if (screen === 'analytics') router.push('/(tabs)/analytics');
@@ -113,9 +136,7 @@ export default function RootLayout() {
             if (screen === 'ai') router.push('/(tabs)/ai-insights');
         });
 
-        // Handle notifications received while app is in foreground
         const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-            // Show an in-app toast instead of the system notification when app is open
             showInAppToast(
                 notification.request.content.title ?? '',
                 notification.request.content.body ?? ''
@@ -126,9 +147,16 @@ export default function RootLayout() {
             subscription.remove();
             foregroundSubscription.remove();
         }
-    }, [dbInitialized]);
+    }, [dbInitialized, session]);
 
-    if (!dbInitialized) return null;
+    // Show nothing while auth is initializing or while loading db if logged in
+    if (!initialized || (session && !dbInitialized)) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#00D1FF" />
+            </View>
+        );
+    }
 
     return (
         <ErrorBoundary>
@@ -149,8 +177,11 @@ export default function RootLayout() {
                     <Stack.Screen name="modals/add-event" options={{ headerShown: false, presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }} />
                     <Stack.Screen name="event-detail" options={{ headerShown: true, title: 'Event' }} />
                     <Stack.Screen name="modals/edit-category" options={{ headerShown: false, presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }} />
-                    {/* Only mount onboarding in production or manually enabled */}
                     <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+                    <Stack.Screen name="auth/signup" options={{ title: 'Sign Up', headerShown: false }} />
+                    <Stack.Screen name="auth/signin" options={{ title: 'Sign In', headerShown: false }} />
+                    <Stack.Screen name="auth/forgot-password" options={{ title: 'Forgot Password', headerShown: false }} />
+                    <Stack.Screen name="profile" options={{ title: 'Profile', headerShown: false }} />
                 </Stack>
             </GestureHandlerRootView>
         </ErrorBoundary>

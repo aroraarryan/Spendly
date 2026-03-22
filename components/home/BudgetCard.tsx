@@ -3,7 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useIncomeStore } from '@/store/incomeStore';
+import { useInvestmentStore } from '@/store/investmentStore';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { calculateSavingsRate } from '@/utils/financialHelpers';
 import NeoCard from '../ui/NeoCard';
 import { Theme } from '@/constants/theme';
 import { AnimatedNumber } from '../shared/AnimatedNumber';
@@ -24,10 +27,27 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
     const colors = useThemeColors();
     const { getTotalByMonth, expenses } = useExpenseStore();
     const { currencySymbol, monthlyBudget } = useSettingsStore();
+    const { getTotalIncomeByMonth } = useIncomeStore();
+    const { getTotalInvested } = useInvestmentStore();
 
     const totalSpent = useMemo(() => {
         return getTotalByMonth(currentMonth + 1, currentYear);
     }, [currentMonth, currentYear, getTotalByMonth, expenses]);
+
+    const totalIncome = useMemo(() => {
+        return getTotalIncomeByMonth(currentMonth + 1, currentYear);
+    }, [currentMonth, currentYear, getTotalIncomeByMonth]);
+
+    const savingsRate = useMemo(() => {
+        if (totalIncome <= 0) return 0;
+        return calculateSavingsRate(totalIncome, totalSpent);
+    }, [totalIncome, totalSpent]);
+
+    const getSavingsRateColor = (rate: number) => {
+        if (rate >= 20) return colors.success;
+        if (rate >= 10) return colors.warning;
+        return colors.danger;
+    };
 
     const progress = Math.min(totalSpent / (monthlyBudget || 1), 1.2);
     const isOverBudget = totalSpent > (monthlyBudget || Infinity);
@@ -80,6 +100,15 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
                     ]}
                 />
             </View>
+
+            {totalIncome > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: -8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textSecondary }}>Savings Rate: </Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: getSavingsRateColor(savingsRate) }}>
+                        {savingsRate.toFixed(1)}%
+                    </Text>
+                </View>
+            )}
 
             <View style={styles.footer}>
                 <View style={styles.stat}>

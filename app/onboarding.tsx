@@ -14,6 +14,9 @@ import OnboardingScreen2 from '@/components/onboarding/OnboardingScreen2';
 import OnboardingScreen3 from '@/components/onboarding/OnboardingScreen3';
 import OnboardingScreen4 from '@/components/onboarding/OnboardingScreen4';
 import OnboardingScreen5 from '@/components/onboarding/OnboardingScreen5';
+import { SocialButton } from '@/components/auth/SocialButton';
+import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/services/supabase';
 
 import { registerForPushNotifications, scheduleMonthlySummaryNotification, scheduleDailyReminder } from '@/services/notificationService';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -27,6 +30,91 @@ export default function Onboarding() {
     const scrollRef = useRef<ScrollView>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const { setNotificationsEnabled, monthlyBudget, currency, dailyReminderHour, dailyReminderMinute, resetSettings } = useSettingsStore();
+
+    const { isLoading } = useAuthStore();
+
+    const handleGoogleLogin = async () => {
+        try {
+            await AsyncStorage.setItem('onboarding_complete', 'true');
+            const AuthSession = require('expo-auth-session');
+            const WebBrowser = require('expo-web-browser');
+            
+            const redirectUrl = AuthSession.makeRedirectUri({ path: 'auth/callback' });
+            
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl,
+                    skipBrowserRedirect: true,
+                },
+            });
+
+            if (error) throw error;
+            if (data?.url) {
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+                if (result.type === 'success') {
+                    const { url } = result;
+                    
+                    // Supabase sends tokens in the hash (#) part of the URL
+                    const responseParams = url.split('#')[1] || url.split('?')[1];
+                    if (responseParams) {
+                        const params = new URLSearchParams(responseParams);
+                        const access_token = params.get('access_token');
+                        const refresh_token = params.get('refresh_token');
+                        
+                        if (access_token && refresh_token) {
+                            const { error } = await supabase.auth.setSession({ 
+                                access_token, 
+                                refresh_token 
+                            });
+                            if (error) console.error('Set Session Error:', error.message);
+                            // On success, the _layout.tsx useEffect will see the session change 
+                            // and redirect to (tabs)
+                        }
+                    }
+                }
+            }
+        } catch (error: any) {
+            console.error('Google Login Error:', error.message);
+        }
+    };
+
+    const handleAppleLogin = async () => {
+        try {
+            await AsyncStorage.setItem('onboarding_complete', 'true');
+            const AuthSession = require('expo-auth-session');
+            const WebBrowser = require('expo-web-browser');
+            
+            const redirectUrl = AuthSession.makeRedirectUri({ path: 'auth/callback' });
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'apple',
+                options: {
+                    redirectTo: redirectUrl,
+                    skipBrowserRedirect: true,
+                },
+            });
+
+            if (error) throw error;
+            if (data?.url) {
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+                if (result.type === 'success') {
+                    const { url } = result;
+                    const responseParams = url.split('#')[1] || url.split('?')[1];
+                    if (responseParams) {
+                        const params = new URLSearchParams(responseParams);
+                        const access_token = params.get('access_token');
+                        const refresh_token = params.get('refresh_token');
+                        if (access_token && refresh_token) {
+                            await supabase.auth.setSession({ access_token, refresh_token });
+                        }
+                    }
+                }
+            }
+        } catch (error: any) {
+            console.error('Apple Login Error:', error.message);
+        }
+    };
 
     const handleNext = () => {
         if (currentIndex < 4) {
@@ -58,7 +146,7 @@ export default function Onboarding() {
     const completeOnboarding = async () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         await AsyncStorage.setItem('onboarding_complete', 'true');
-        router.replace('/(tabs)/');
+        router.push('/auth/signup');
     };
 
     const handleEnableNotifications = async () => {
@@ -161,16 +249,40 @@ export default function Onboarding() {
                                 onPress={handleNext}
                                 style={styles.fullButton}
                             />
-                            <TouchableOpacity style={styles.maybeLater} onPress={() => Alert.alert('Account Sync', 'Multi-device sync is coming soon! Spendly currently saves all data locally on your device.')}>
+                            <TouchableOpacity style={styles.maybeLater} onPress={() => {
+                                AsyncStorage.setItem('onboarding_complete', 'true');
+                                router.push('/auth/signin');
+                            }}>
                                 <Text style={[styles.maybeLaterText, { color: colors.textSecondary }]}>I already have an account</Text>
+                            </TouchableOpacity>
+                        </>
+                    ) : currentIndex === 4 ? (
+                        <>
+                            <NeoButton
+                                label="Create Account"
+                                onPress={completeOnboarding}
+                                style={styles.fullButton}
+                                variant="primary"
+                            />
+                            <View style={{ marginTop: 12, width: '100%', gap: 8 }}>
+                                <SocialButton provider="google" onPress={handleGoogleLogin} isLoading={isLoading} />
+                                {Platform.OS === 'ios' && (
+                                    <SocialButton provider="apple" onPress={handleAppleLogin} isLoading={isLoading} />
+                                )}
+                            </View>
+                            <TouchableOpacity style={styles.maybeLater} onPress={() => {
+                                AsyncStorage.setItem('onboarding_complete', 'true');
+                                router.push('/auth/signin');
+                            }}>
+                                <Text style={[styles.maybeLaterText, { color: colors.textSecondary }]}>Already have an account? Sign In</Text>
                             </TouchableOpacity>
                         </>
                     ) : (
                         <NeoButton
-                            label={currentIndex === 4 ? "Start Tracking →" : "Continue"}
+                            label="Continue"
                             onPress={handleNext}
                             style={styles.fullButton}
-                            variant={currentIndex === 4 ? "primary" : "secondary"}
+                            variant="secondary"
                         />
                     )}
                 </View>
