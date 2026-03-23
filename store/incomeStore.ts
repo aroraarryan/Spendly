@@ -15,6 +15,7 @@ interface IncomeState {
     getIncomeByMonth: (month: number, year: number) => Income[];
     getTotalIncomeByMonth: (month: number, year: number) => number;
     getIncomeSourceById: (id: string) => IncomeSource | undefined;
+    refreshFromServer: () => Promise<void>;
 }
 
 export const useIncomeStore = create<IncomeState>((set, get) => ({
@@ -38,8 +39,6 @@ export const useIncomeStore = create<IncomeState>((set, get) => ({
         set({ isLoading: true });
         try {
             const data = await db.getIncome(month, year);
-            // Append to existing income if needed, or replace
-            // For now, let's keep it simple and just store the current view's income
             set({ income: data as Income[] });
         } catch (error) {
             console.error('Error loading income:', error);
@@ -48,23 +47,33 @@ export const useIncomeStore = create<IncomeState>((set, get) => ({
         }
     },
 
+    refreshFromServer: async () => {
+        const now = new Date();
+        await Promise.all([
+            get().loadIncomeSources(),
+            get().loadIncome(now.getMonth() + 1, now.getFullYear())
+        ]);
+    },
+
     addIncomeSource: async (source) => {
-        const id = await db.addIncomeSource(source);
+        const data = await db.addIncomeSource(source);
+        const newSource = data as IncomeSource;
         await get().loadIncomeSources();
-        return id;
+        return newSource.id;
     },
 
     addIncome: async (incomeData) => {
-        const id = await db.addIncome(incomeData);
-        // Refresh local state
-        const date = new Date(incomeData.date);
+        const data = await db.addIncome(incomeData);
+        const newIncome = data as Income;
+        // Refresh local state for the month of the income
+        const date = new Date(newIncome.date);
         await get().loadIncome(date.getMonth() + 1, date.getFullYear());
-        return id;
+        return newIncome.id;
     },
 
     updateIncome: async (id, updates) => {
         await db.updateIncome(id, updates);
-        // Find existing income and update its data to refresh view
+        // Refresh correctly
         const entry = get().income.find(i => i.id === id);
         if (entry) {
             const date = new Date(entry.date);

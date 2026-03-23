@@ -21,6 +21,7 @@ interface EventState {
     getPastEvents: () => EventRow[];
     getEventById: (id: string) => EventRow | undefined;
     clearEvents: () => Promise<void>;
+    refreshFromServer: () => Promise<void>;
     deleteEventAndUntag: (id: string) => Promise<void>;
     importEvents: (events: EventRow[]) => Promise<void>;
 }
@@ -39,17 +40,12 @@ export const useEventStore = create<EventState>((set, get) => ({
             set({ isLoading: false });
         }
     },
+    refreshFromServer: async () => {
+        await get().loadEvents();
+    },
     addEvent: async (event) => {
-        const id = await addEvent(event);
-        const newEvent: EventRow = {
-            id,
-            name: event.name,
-            start_date: event.start_date,
-            end_date: event.end_date,
-            total_budget: event.total_budget || 0,
-            cover_color: event.cover_color,
-            created_at: new Date().toISOString()
-        };
+        const data = await addEvent(event);
+        const newEvent = data as EventRow;
         set(state => ({ events: [newEvent, ...state.events] }));
     },
     deleteEvent: async (id) => {
@@ -68,8 +64,8 @@ export const useEventStore = create<EventState>((set, get) => ({
         return get().events.find(e => e.id === id);
     },
     clearEvents: async () => {
-        const { deleteAllEvents } = await import('../services/database');
-        await deleteAllEvents();
+        const { clearAllUserData } = await import('../services/database');
+        await clearAllUserData();
         set({ events: [] });
     },
     deleteEventAndUntag: async (id) => {

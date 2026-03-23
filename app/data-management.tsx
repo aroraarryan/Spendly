@@ -256,9 +256,9 @@ export default function DataManagementScreen() {
                         </View>
                     </View>
                     
-                    <View style={[styles.warningContainer, { backgroundColor: '#FEF3C7' }]}>
+                    <View style={[styles.infoBox, { backgroundColor: '#FEF3C7', marginBottom: 16 }]}>
                         <Text style={[styles.warningTextSmall, { color: '#92400E' }]}>
-                            ⚠️ This will merge with your existing data. Duplicates will be skipped.
+                            ⚠️ Backup files are local snapshots. Your main data is synced to cloud.
                         </Text>
                     </View>
 
@@ -294,13 +294,13 @@ export default function DataManagementScreen() {
 
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary, marginTop: 24 }]}>STORAGE</Text>
                 <NeoCard padding={20} marginBottom={32}>
-                    <StatRow icon="💾" label="Database Size" value={`Approx. ${dbSize} KB`} />
+                    <StatRow icon="💾" label="Database Size" value={`Calculated in Cloud`} />
                     <StatRow icon="☁️" label="Last Backup" value={lastBackupDate ? new Date(lastBackupDate).toLocaleDateString() : 'Never'} />
-                    <StatRow icon="🔒" label="Data stored on" value="Your device only 🔒" isLast />
+                    <StatRow icon="🔒" label="Data stored on" value="Supabase Cloud 🔒" isLast />
                     
-                    <View style={[styles.infoBox, { backgroundColor: '#D1FAE5' }]}>
+                    <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', marginTop: 16 }]}>
                         <Text style={[styles.infoText, { color: '#065F46' }]}>
-                            🔒 Your data never leaves your device except when you choose to export it. Spendly does not have servers or cloud sync.
+                            🔒 Your data is securely synced to Supabase Cloud, ensuring it's available across all your devices and backed up automatically.
                         </Text>
                     </View>
                 </NeoCard>

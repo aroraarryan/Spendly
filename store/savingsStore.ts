@@ -15,6 +15,7 @@ interface SavingsState {
     deleteContribution: (id: string, goalId: string) => Promise<void>;
     getGoalContributions: (goalId: string) => SavingsContribution[];
     checkAndCompleteGoal: (goalId: string) => Promise<void>;
+    refreshFromServer: () => Promise<void>;
 }
 
 export const useSavingsStore = create<SavingsState>((set, get) => ({
@@ -48,10 +49,15 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
         }
     },
 
-    addGoal: async (goalData) => {
-        const id = await db.addSavingsGoal(goalData);
+    refreshFromServer: async () => {
         await get().loadGoals();
-        return id;
+    },
+
+    addGoal: async (goalData) => {
+        const data = await db.addSavingsGoal(goalData);
+        const newGoal = data as SavingsGoal;
+        await get().loadGoals();
+        return newGoal.id;
     },
 
     updateGoal: async (id, updates) => {
@@ -71,11 +77,12 @@ export const useSavingsStore = create<SavingsState>((set, get) => ({
     },
 
     addContribution: async (contribData) => {
-        const id = await db.addSavingsContribution(contribData);
+        const data = await db.addSavingsContribution(contribData);
+        const newContrib = data as SavingsContribution;
         await get().loadGoals();
-        await get().loadContributions(contribData.goal_id);
-        await get().checkAndCompleteGoal(contribData.goal_id);
-        return id;
+        await get().loadContributions(newContrib.goal_id);
+        await get().checkAndCompleteGoal(newContrib.goal_id);
+        return newContrib.id;
     },
 
     deleteContribution: async (id, goalId) => {

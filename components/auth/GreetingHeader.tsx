@@ -5,8 +5,15 @@ import { Avatar } from './Avatar';
 import { useRouter } from 'expo-router';
 
 export const GreetingHeader: React.FC = () => {
-  const { profile } = useAuthStore();
+  const { profile, loadProfile, user } = useAuthStore();
   const router = useRouter();
+
+  // Self-healing: if name is missing but we have a user, try loading again
+  React.useEffect(() => {
+    if (user?.id && (!profile?.full_name || profile.full_name === 'Explorer')) {
+      loadProfile(user.id);
+    }
+  }, [user?.id, profile?.full_name]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();

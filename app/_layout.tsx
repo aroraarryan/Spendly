@@ -19,6 +19,8 @@ import { registerForPushNotifications, clearBadge } from "../services/notificati
 import { useAuthStore } from "../store/authStore";
 import { useToast } from "../hooks/useToast";
 import InAppToast from "../components/shared/InAppToast";
+import OfflineBanner from "../components/shared/OfflineBanner";
+import { startRealtimeSync, stopRealtimeSync } from "../services/realtimeService";
 import { Theme } from "../constants/theme";
 import { useThemeColors } from "../hooks/useThemeColors";
 import { useAppTheme } from "../hooks/useAppTheme";
@@ -34,18 +36,17 @@ if (__DEV__) {
 
 export default function RootLayout() {
     const segments = useSegments();
-    const [dbInitialized, setDbInitialized] = useState(false);
     const router = useRouter();
     const { showInAppToast } = useToast();
     const { setColorScheme } = useTailwindColorScheme();
-    const { loadSettings } = useSettingsStore();
-
-    const { session, initialized, initialize: initAuth } = useAuthStore();
-
-    const { loadIncomeSources, loadIncome } = useIncomeStore.getState();
-    const { loadGoals } = useSavingsStore.getState();
-    const { loadInvestments, loadInvestmentTypes, loadSIPs, loadFixedDeposits } = useInvestmentStore.getState();
-    const { loadAssets, loadLiabilities, loadHistory } = useNetWorthStore.getState();
+    
+    const { 
+        session, 
+        initialized, 
+        appInitialized, 
+        initialize: initAuth, 
+        initializeStores 
+    } = useAuthStore();
 
     const theme = useAppTheme();
     const colors = useThemeColors();
@@ -61,43 +62,37 @@ export default function RootLayout() {
 
     // Database Initialization & Data Loading
     useEffect(() => {
-        const setup = async () => {
-            if (!session) return;
+        let isMounted = true;
+        
+        if (session?.user?.id) {
+            console.log('[Layout] Session available, starting stable store init');
+            initializeStores(session.user.id);
             
-            try {
-                await initDatabase();
+            // Fail-safe: Always hide splash or loading after 5 seconds if we have a session
+            const timer = setTimeout(async () => {
+                const state = useAuthStore.getState();
+                if (isMounted && (!state.appInitialized || !state.initialized)) {
+                    console.warn('[Layout] Initialization taking too long, triggering failsafe to unlock UI');
+                    useAuthStore.setState({ appInitialized: true, initialized: true });
+                    await SplashScreen.hideAsync().catch(() => {});
+                }
+            }, 5000);
 
-                const now = new Date();
-                const currentMonth = now.getMonth() + 1;
-                const currentYear = now.getFullYear();
+            return () => {
+                isMounted = false;
+                clearTimeout(timer);
+            };
+        } else {
+            stopRealtimeSync();
+        }
+    }, [session?.user?.id]);
 
-                await Promise.all([
-                    useCategoryStore.getState().loadCategories(),
-                    useExpenseStore.getState().loadExpenses(),
-                    useEventStore.getState().loadEvents(),
-                    loadSettings(),
-                    loadIncomeSources(),
-                    loadIncome(currentMonth, currentYear),
-                    loadGoals(),
-                    loadInvestments(),
-                    loadInvestmentTypes(),
-                    loadSIPs(),
-                    loadFixedDeposits(),
-                    loadAssets(),
-                    loadLiabilities(),
-                    loadHistory()
-                ]);
-
-                setDbInitialized(true);
-                await SplashScreen.hideAsync();
-            } catch (e) {
-                console.error("Failed to initialize database", e);
-                setDbInitialized(true);
-                await SplashScreen.hideAsync();
-            }
-        };
-        setup();
-    }, [session]);
+    // Handle Splash Screen Visibility based on appInitialized
+    useEffect(() => {
+        if (appInitialized) {
+            SplashScreen.hideAsync().catch(() => {});
+        }
+    }, [appInitialized]);
 
     // Handle Auth Redirection & Splash Hiding
     useEffect(() => {
@@ -123,7 +118,7 @@ export default function RootLayout() {
 
     // Post-Initialization Setup (Notifications)
     useEffect(() => {
-        if (!dbInitialized || !session) return;
+        if (!appInitialized || !session) return;
 
         registerForPushNotifications();
         clearBadge();
@@ -147,10 +142,10 @@ export default function RootLayout() {
             subscription.remove();
             foregroundSubscription.remove();
         }
-    }, [dbInitialized, session]);
+    }, [appInitialized, session]);
 
     // Show nothing while auth is initializing or while loading db if logged in
-    if (!initialized || (session && !dbInitialized)) {
+    if (!initialized || (session && !appInitialized)) {
         return (
             <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#00D1FF" />
@@ -161,6 +156,7 @@ export default function RootLayout() {
     return (
         <ErrorBoundary>
             <GestureHandlerRootView style={{ flex: 1 }}>
+                <OfflineBanner />
                 <InAppToast />
                 <Stack screenOptions={{
                     headerStyle: { backgroundColor: colors.background },

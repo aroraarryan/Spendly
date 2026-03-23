@@ -26,6 +26,7 @@ interface InvestmentState {
     getTotalReturns: () => number;
     getReturnsPercent: () => number;
     getTypeById: (id: string) => InvestmentType | undefined;
+    refreshFromServer: () => Promise<void>;
 }
 
 export const useInvestmentStore = create<InvestmentState>((set, get) => ({
@@ -74,10 +75,20 @@ export const useInvestmentStore = create<InvestmentState>((set, get) => ({
         }
     },
 
+    refreshFromServer: async () => {
+        await Promise.all([
+            get().loadInvestments(),
+            get().loadSIPs(),
+            get().loadFixedDeposits(),
+            get().loadInvestmentTypes()
+        ]);
+    },
+
     addInvestment: async (inv) => {
-        const id = await db.addInvestment(inv as any);
+        const data = await db.addInvestment(inv as any);
+        const newInv = data as Investment;
         await get().loadInvestments();
-        return id;
+        return newInv.id;
     },
 
     updateInvestment: async (id, updates) => {
@@ -91,9 +102,10 @@ export const useInvestmentStore = create<InvestmentState>((set, get) => ({
     },
 
     addSIP: async (sip) => {
-        const id = await db.addSIP(sip as any);
+        const data = await db.addSIP(sip as any);
+        const newSIP = data as SIP;
         await get().loadSIPs();
-        return id;
+        return newSIP.id;
     },
 
     updateSIP: async (id, updates) => {
@@ -107,9 +119,10 @@ export const useInvestmentStore = create<InvestmentState>((set, get) => ({
     },
 
     addFixedDeposit: async (fd) => {
-        const id = await db.addFixedDeposit(fd as any);
+        const data = await db.addFixedDeposit(fd as any);
+        const newFD = data as FixedDeposit;
         await get().loadFixedDeposits();
-        return id;
+        return newFD.id;
     },
 
     updateFixedDeposit: async (id, updates) => {
@@ -125,13 +138,12 @@ export const useInvestmentStore = create<InvestmentState>((set, get) => ({
     getTotalInvested: () => {
         const invTotal = get().investments.reduce((sum, i) => sum + i.invested_amount, 0);
         const fdTotal = get().fixedDeposits.reduce((sum, fd) => sum + fd.principal, 0);
-        // SIP historical data might be complex, for now we can track total_invested field if we implement updates for it
         return invTotal + fdTotal;
     },
 
     getTotalCurrentValue: () => {
         const invTotal = get().investments.reduce((sum, i) => sum + i.current_value, 0);
-        const fdTotal = get().fixedDeposits.reduce((sum, fd) => sum + fd.maturity_amount, 0); // Approx
+        const fdTotal = get().fixedDeposits.reduce((sum, fd) => sum + fd.maturity_amount, 0);
         return invTotal + fdTotal;
     },
 

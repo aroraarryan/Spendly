@@ -32,6 +32,7 @@ interface ExpenseState {
     getTotalByCategory: (categoryId: string, month: number, year: number) => number;
     clearExpenses: () => Promise<void>;
     reloadExpenses: () => Promise<void>;
+    refreshFromServer: () => Promise<void>;
     importExpenses: (expenses: ExpenseRow[]) => Promise<void>;
 }
 
@@ -50,20 +51,20 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
             set({ isLoading: false });
         }
     },
+    refreshFromServer: async () => {
+        await get().loadExpenses();
+    },
     addExpense: async (expense) => {
-        const id = await addExpense(expense as any);
-        const newExpense: ExpenseRow = {
-            ...expense,
-            id,
-            created_at: new Date().toISOString()
-        };
+        const data = await addExpense(expense as any);
+        const newExpense: ExpenseRow = data as ExpenseRow;
+        
         set(state => ({ expenses: [newExpense, ...state.expenses] }));
 
         // Check for budget alerts after adding expense
         const { month, year } = getCurrentMonthYear();
-        await checkBudgetAlerts(month, year);
+        checkBudgetAlerts(month, year).catch(console.error);
 
-        return id;
+        return newExpense.id;
     },
     updateExpense: async (id, updates) => {
         await updateExpense(id, updates);
@@ -99,8 +100,8 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
             .reduce((sum, e) => sum + e.amount, 0);
     },
     clearExpenses: async () => {
-        const { deleteAllExpenses } = await import('../services/database');
-        await deleteAllExpenses();
+        const { clearAllUserData } = await import('../services/database');
+        await clearAllUserData();
         set({ expenses: [] });
     },
     reloadExpenses: async () => {

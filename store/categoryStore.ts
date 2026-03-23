@@ -20,6 +20,7 @@ interface CategoryState {
     deleteCategory: (id: string) => Promise<void>;
     getCategoryById: (id: string) => CategoryRow | undefined;
     resetCategories: () => Promise<void>;
+    refreshFromServer: () => Promise<void>;
     deleteCategoryAndReassign: (id: string) => Promise<void>;
     importCategories: (categories: CategoryRow[]) => Promise<void>;
 }
@@ -38,17 +39,12 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
             set({ isLoading: false });
         }
     },
+    refreshFromServer: async () => {
+        await get().loadCategories();
+    },
     addCategory: async (category) => {
-        const id = await addCategory(category);
-        const newCat: CategoryRow = {
-            id,
-            name: category.name,
-            icon: category.icon,
-            color: category.color,
-            monthly_budget: category.monthly_budget || 0,
-            is_custom: 1,
-            created_at: new Date().toISOString()
-        };
+        const data = await addCategory(category);
+        const newCat = data as CategoryRow;
         set(state => ({ categories: [...state.categories, newCat].sort((a, b) => a.name.localeCompare(b.name)) }));
     },
     updateCategory: async (id, updates) => {
@@ -65,8 +61,8 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
         return get().categories.find(c => c.id === id);
     },
     resetCategories: async () => {
-        const { resetCategoriesToDefault } = await import('../services/database');
-        await resetCategoriesToDefault();
+        const { clearAllUserData } = await import('../services/database');
+        await clearAllUserData();
         await get().loadCategories();
     },
     deleteCategoryAndReassign: async (id) => {

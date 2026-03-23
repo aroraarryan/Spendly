@@ -31,86 +31,21 @@ export default function Onboarding() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const { setNotificationsEnabled, monthlyBudget, currency, dailyReminderHour, dailyReminderMinute, resetSettings } = useSettingsStore();
 
-    const { isLoading } = useAuthStore();
-
+    const { isLoading, signInWithGoogle, signInWithApple } = useAuthStore();
+  
     const handleGoogleLogin = async () => {
         try {
             await AsyncStorage.setItem('onboarding_complete', 'true');
-            const AuthSession = require('expo-auth-session');
-            const WebBrowser = require('expo-web-browser');
-            
-            const redirectUrl = AuthSession.makeRedirectUri({ path: 'auth/callback' });
-            
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectUrl,
-                    skipBrowserRedirect: true,
-                },
-            });
-
-            if (error) throw error;
-            if (data?.url) {
-                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-                if (result.type === 'success') {
-                    const { url } = result;
-                    
-                    // Supabase sends tokens in the hash (#) part of the URL
-                    const responseParams = url.split('#')[1] || url.split('?')[1];
-                    if (responseParams) {
-                        const params = new URLSearchParams(responseParams);
-                        const access_token = params.get('access_token');
-                        const refresh_token = params.get('refresh_token');
-                        
-                        if (access_token && refresh_token) {
-                            const { error } = await supabase.auth.setSession({ 
-                                access_token, 
-                                refresh_token 
-                            });
-                            if (error) console.error('Set Session Error:', error.message);
-                            // On success, the _layout.tsx useEffect will see the session change 
-                            // and redirect to (tabs)
-                        }
-                    }
-                }
-            }
+            await signInWithGoogle();
         } catch (error: any) {
             console.error('Google Login Error:', error.message);
         }
     };
-
+  
     const handleAppleLogin = async () => {
         try {
             await AsyncStorage.setItem('onboarding_complete', 'true');
-            const AuthSession = require('expo-auth-session');
-            const WebBrowser = require('expo-web-browser');
-            
-            const redirectUrl = AuthSession.makeRedirectUri({ path: 'auth/callback' });
-
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'apple',
-                options: {
-                    redirectTo: redirectUrl,
-                    skipBrowserRedirect: true,
-                },
-            });
-
-            if (error) throw error;
-            if (data?.url) {
-                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-                if (result.type === 'success') {
-                    const { url } = result;
-                    const responseParams = url.split('#')[1] || url.split('?')[1];
-                    if (responseParams) {
-                        const params = new URLSearchParams(responseParams);
-                        const access_token = params.get('access_token');
-                        const refresh_token = params.get('refresh_token');
-                        if (access_token && refresh_token) {
-                            await supabase.auth.setSession({ access_token, refresh_token });
-                        }
-                    }
-                }
-            }
+            await signInWithApple();
         } catch (error: any) {
             console.error('Apple Login Error:', error.message);
         }

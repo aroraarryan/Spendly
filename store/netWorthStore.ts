@@ -22,6 +22,7 @@ interface NetWorthState {
     getTotalLiabilities: () => number;
     getNetWorth: () => number;
     saveMonthlySnapshot: () => Promise<void>;
+    refreshFromServer: () => Promise<void>;
 }
 
 export const useNetWorthStore = create<NetWorthState>((set, get) => ({
@@ -60,10 +61,19 @@ export const useNetWorthStore = create<NetWorthState>((set, get) => ({
         }
     },
 
+    refreshFromServer: async () => {
+        await Promise.all([
+            get().loadAssets(),
+            get().loadLiabilities(),
+            get().loadHistory()
+        ]);
+    },
+
     addAsset: async (asset) => {
-        const id = await db.addAsset(asset as any);
+        const data = await db.addAsset(asset as any);
+        const newAsset = data as Asset;
         await get().loadAssets();
-        return id;
+        return newAsset.id;
     },
 
     updateAsset: async (id, updates) => {
@@ -77,9 +87,10 @@ export const useNetWorthStore = create<NetWorthState>((set, get) => ({
     },
 
     addLiability: async (lia) => {
-        const id = await db.addLiability(lia as any);
+        const data = await db.addLiability(lia as any);
+        const newLia = data as Liability;
         await get().loadLiabilities();
-        return id;
+        return newLia.id;
     },
 
     updateLiability: async (id, updates) => {

@@ -4,12 +4,13 @@ import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthInput } from '@/components/auth/AuthInput';
 import NeoButton from '@/components/ui/NeoButton';
+import { SocialButton } from '@/components/auth/SocialButton';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 export default function SigninScreen() {
   const router = useRouter();
-  const { isLoading, setSession } = useAuthStore();
+  const { isLoading, setSession, signInWithGoogle, signInWithApple } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,6 +41,23 @@ export default function SigninScreen() {
       }
     } catch (error: any) {
       Alert.alert('Sign In Error', error.message);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+      // On success, the _layout.tsx useEffect will handle redirection
+    } catch (error: any) {
+      Alert.alert('Google Login Error', error.message);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      await signInWithApple();
+    } catch (error: any) {
+      Alert.alert('Apple Login Error', error.message);
     }
   };
 
@@ -105,6 +123,27 @@ export default function SigninScreen() {
               style={styles.button}
               glowing
             />
+
+            <View style={styles.separatorContainer}>
+              <View style={styles.separator} />
+              <Text style={styles.separatorText}>OR</Text>
+              <View style={styles.separator} />
+            </View>
+
+            <View style={styles.socialContainer}>
+              <SocialButton 
+                provider="google" 
+                onPress={handleGoogleLogin} 
+                isLoading={isLoading} 
+              />
+              {Platform.OS === 'ios' && (
+                <SocialButton 
+                  provider="apple" 
+                  onPress={handleAppleLogin} 
+                  isLoading={isLoading} 
+                />
+              )}
+            </View>
           </View>
 
           <View style={styles.footer}>
@@ -160,6 +199,26 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 30,
+  },
+  separator: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  separatorText: {
+    color: '#888888',
+    paddingHorizontal: 15,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  socialContainer: {
+    width: '100%',
+    gap: 8,
   },
   footer: {
     flexDirection: 'row',

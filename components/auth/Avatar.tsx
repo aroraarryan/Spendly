@@ -10,26 +10,27 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ size = 80, showEdit = false }) => {
-  const { profile, uploadAvatar, isLoading } = useAuthStore();
+  const { profile, uploadAvatar, isLoading: storeLoading } = useAuthStore();
 
   const getInitials = () => {
     if (!profile?.full_name) return '?';
-    return profile.full_name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    const parts = profile.full_name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
+
+  const hasAvatar = profile?.avatar_url && profile.avatar_url.trim().length > 0;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      {profile?.avatar_url ? (
+      {hasAvatar ? (
         <Image
-          source={{ uri: profile.avatar_url }}
+          source={{ uri: profile.avatar_url as string }}
           style={[styles.image, { borderRadius: size / 2 }]}
           contentFit="cover"
-          transition={200}
+          transition={300}
+          cachePolicy="memory-disk"
         />
       ) : (
         <View style={[styles.placeholder, { borderRadius: size / 2, backgroundColor: '#1E1E1E' }]}>
@@ -41,16 +42,14 @@ export const Avatar: React.FC<AvatarProps> = ({ size = 80, showEdit = false }) =
         <Pressable 
           style={styles.editButton} 
           onPress={uploadAvatar}
-          disabled={isLoading}
+          disabled={storeLoading}
         >
-          <Ionicons name="camera" size={16} color="#FFFFFF" />
+          {storeLoading ? (
+             <View style={styles.miniSpinner} />
+          ) : (
+            <Ionicons name="camera" size={16} color="#FFFFFF" />
+          )}
         </Pressable>
-      )}
-
-      {isLoading && (
-        <View style={[styles.loadingOverlay, { borderRadius: size / 2 }]}>
-          <View style={styles.loadingSpinner} />
-        </View>
       )}
     </View>
   );
@@ -95,12 +94,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingSpinner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  miniSpinner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#00D1FF',
+    borderColor: '#FFFFFF',
     borderTopColor: 'transparent',
   }
 });
