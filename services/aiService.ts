@@ -4,6 +4,7 @@ import { useExpenseStore } from '../store/expenseStore';
 import { useCategoryStore } from '../store/categoryStore';
 import { useEventStore } from '../store/eventStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useSavingsStore } from '../store/savingsStore';
 import { getMonthName } from '../utils/analyticsHelpers';
 
 const getGeminiClient = () => {
@@ -16,7 +17,7 @@ const getGeminiClient = () => {
 
 export async function generateMonthlyInsights(expenseContext: ExpenseContext): Promise<InsightReport> {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const prompt = `
 You are a personal finance advisor. Analyze this user's expense data and respond in EXACTLY this format.
@@ -34,8 +35,8 @@ ACTIONABLE TIPS:
 3. [Third specific tip]
 4. [Fourth specific tip]
 
-SAVINGS GOAL:
-[1-2 sentences recommending a realistic savings target for next month. Include a specific amount in ${expenseContext.currencySymbol}.]
+SAVINGS GOAL ADVICE:
+[2-3 sentences providing specific advice on reaching their active savings goals faster or celebrating their progress.]
 
 Keep total response under 300 words. Be friendly, specific, and use the actual numbers from the data below.
 
@@ -55,7 +56,7 @@ export async function chatWithAdvisor(
 ): Promise<string> {
     const genAI = getGeminiClient();
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         systemInstruction: `You are Spendly AI, a friendly personal finance advisor. 
 You have access to the user's expense data below. Answer questions helpfully using their actual spending numbers. 
 Keep responses concise (2-4 sentences). Be encouraging but honest. Do not use markdown formatting.
@@ -76,25 +77,51 @@ ${JSON.stringify(expenseContext, null, 2)}`
     return result.response.text();
 }
 
+export async function generateGoalStrategy(
+    goal: any,
+    expenseContext: ExpenseContext
+): Promise<string> {
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+
+    const prompt = `
+You are a personal finance advisor. This user is working towards a specific savings goal:
+GOAL: ${goal.name}
+TARGET: ${expenseContext.currencySymbol}${goal.target_amount}
+SAVED: ${expenseContext.currencySymbol}${goal.saved_amount}
+DEADLINE: ${goal.target_date || 'None'}
+
+Based on their monthly spending patterns (Total Spent: ${expenseContext.currencySymbol}${expenseContext.totalSpent}), give them 3-4 highly specific, actionable tips to reach THIS EXACT GOAL faster. 
+Refer to the goal name and amounts directly. Be encouraging. Do not use markdown formatting.
+Keep response under 150 words.
+
+DATA:
+${JSON.stringify(expenseContext, null, 2)}
+    `;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+}
+
 function parseInsightResponse(text: string): InsightReport {
     const sections = {
         summary: '',
         warningAreas: '',
         actionableTips: '',
-        savingsGoal: ''
+        savingsGoalAdvice: ''
     };
 
     const summaryMatch = text.match(/SUMMARY:([\s\S]*?)(?=WARNING AREAS:|$)/i);
     const warningMatch = text.match(/WARNING AREAS:([\s\S]*?)(?=ACTIONABLE TIPS:|$)/i);
-    const tipsMatch = text.match(/ACTIONABLE TIPS:([\s\S]*?)(?=SAVINGS GOAL:|$)/i);
-    const goalMatch = text.match(/SAVINGS GOAL:([\s\S]*?)$/i);
+    const tipsMatch = text.match(/ACTIONABLE TIPS:([\s\S]*?)(?=SAVINGS GOAL ADVICE:|$)/i);
+    const goalMatch = text.match(/SAVINGS GOAL ADVICE:([\s\S]*?)$/i);
 
     sections.summary = summaryMatch?.[1]?.trim() ?? text;
     sections.warningAreas = warningMatch?.[1]?.trim() ?? '';
     sections.actionableTips = tipsMatch?.[1]?.trim() ?? '';
-    sections.savingsGoal = goalMatch?.[1]?.trim() ?? '';
+    sections.savingsGoalAdvice = goalMatch?.[1]?.trim() ?? '';
 
-    if (!sections.warningAreas && !sections.actionableTips && !sections.savingsGoal) {
+    if (!sections.warningAreas && !sections.actionableTips && !sections.savingsGoalAdvice) {
         sections.summary = text;
     }
 
@@ -105,6 +132,7 @@ export function buildExpenseContext(month: number, year: number): ExpenseContext
     const { expenses } = useExpenseStore.getState();
     const { categories } = useCategoryStore.getState();
     const { events } = useEventStore.getState();
+    const { goals } = useSavingsStore.getState();
     const { currency, currencySymbol, monthlyBudget } = useSettingsStore.getState();
 
     const thisMonthExpenses = expenses.filter(e => {
@@ -189,7 +217,13 @@ export function buildExpenseContext(month: number, year: number): ExpenseContext
         },
         topExpenses,
         activeEvents,
-        recurringExpenses
+        recurringExpenses,
+        savingsGoals: goals.filter(g => !g.is_completed).map(g => ({
+            name: g.name,
+            target: g.target_amount,
+            saved: g.saved_amount,
+            deadline: g.target_date
+        }))
     };
 }
 

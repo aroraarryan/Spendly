@@ -25,14 +25,14 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
     onNextMonth
 }) => {
     const colors = useThemeColors();
-    const { getTotalByMonth, expenses } = useExpenseStore();
+    const { getTotalExpensesByMonth, expenses } = useExpenseStore();
     const { currencySymbol, monthlyBudget } = useSettingsStore();
     const { getTotalIncomeByMonth } = useIncomeStore();
     const { getTotalInvested } = useInvestmentStore();
 
     const totalSpent = useMemo(() => {
-        return getTotalByMonth(currentMonth + 1, currentYear);
-    }, [currentMonth, currentYear, getTotalByMonth, expenses]);
+        return getTotalExpensesByMonth(currentMonth + 1, currentYear);
+    }, [currentMonth, currentYear, getTotalExpensesByMonth, expenses]);
 
     const totalIncome = useMemo(() => {
         return getTotalIncomeByMonth(currentMonth + 1, currentYear);
@@ -58,7 +58,7 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
     return (
         <NeoCard style={styles.container} padding={24} backgroundColor={colors.surface}>
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={[styles.label, { color: colors.textSecondary }]}>Total Spent</Text>
                     <View style={styles.amountContainer}>
                         <AnimatedNumber
@@ -66,7 +66,11 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
                             style={[styles.amount, { color: colors.text }]}
                             currencySymbol={currencySymbol}
                         />
-                        <Text style={[styles.budgetTotal, { color: colors.textMuted }]}>
+                        <Text 
+                            style={[styles.budgetTotal, { color: colors.textMuted }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                        >
                             of {currencySymbol}{monthlyBudget.toLocaleString()}
                         </Text>
                     </View>
@@ -162,6 +166,7 @@ const styles = StyleSheet.create({
     amountContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
+        flexWrap: 'wrap',
     },
     currency: {
         fontSize: 20,
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
     amount: {
         fontSize: 42,
         fontWeight: '700',
+        flexShrink: 1,
     },
     budgetTotal: {
         fontSize: 14,
@@ -180,6 +186,7 @@ const styles = StyleSheet.create({
     monthNav: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexShrink: 0,
     },
     navBtn: {
         width: 32,

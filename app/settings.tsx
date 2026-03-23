@@ -389,6 +389,20 @@ export default function SettingsScreen() {
                             }
                         />
                         <SettingsRow
+                            icon="💰"
+                            iconBgColor="#ECFDF5"
+                            label="Income Reminders"
+                            sublabel="Reminder to log monthly income"
+                            disabled={!settings.notificationsEnabled}
+                            rightElement={
+                                <NeoToggle
+                                    value={settings.incomeReminderEnabled}
+                                    onValueChange={(val) => settings.setIncomeReminderEnabled(val)}
+                                    disabled={!settings.notificationsEnabled}
+                                />
+                            }
+                        />
+                        <SettingsRow
                             icon="⏰"
                             iconBgColor="#DBEAFE"
                             label="Daily Reminder"

@@ -834,3 +834,23 @@ export async function clearAllUserData() {
     .eq('user_id', userId)
     .eq('is_custom', 1)
 }
+
+export async function deleteAllExpenses() {
+  const userId = getUserId()
+  const { error } = await supabase.from('expenses').delete().eq('user_id', userId)
+  if (error) handleError(error, 'deleteAllExpenses')
+}
+
+export async function deleteAllEvents() {
+  const userId = getUserId()
+  const { error } = await supabase.from('events').delete().eq('user_id', userId)
+  if (error) handleError(error, 'deleteAllEvents')
+}
+
+export async function resetCategoriesToDefault() {
+  const userId = getUserId()
+  // Delete all custom categories
+  await supabase.from('categories').delete().eq('user_id', userId).eq('is_custom', 1)
+  // RPC to seed defaults
+  await supabase.rpc('seed_default_categories', { p_user_id: userId })
+}

@@ -15,6 +15,10 @@ interface IncomeState {
     getIncomeByMonth: (month: number, year: number) => Income[];
     getTotalIncomeByMonth: (month: number, year: number) => number;
     getIncomeSourceById: (id: string) => IncomeSource | undefined;
+    getSavingsRate: (month: number, year: number) => number;
+    getNetCashFlow: (month: number, year: number) => number;
+    getAverageMonthlyIncome: (months: number) => number;
+    getLast6MonthsIncome: () => Array<{ month: number; year: number; monthName: string; total: number }>;
     refreshFromServer: () => Promise<void>;
 }
 
@@ -102,5 +106,63 @@ export const useIncomeStore = create<IncomeState>((set, get) => ({
 
     getIncomeSourceById: (id) => {
         return get().incomeSources.find(s => s.id === id);
+    },
+
+    getSavingsRate: (month: number, year: number) => {
+        const income = get().getTotalIncomeByMonth(month, year);
+        if (income === 0) return 0;
+
+        const { useExpenseStore } = require('./expenseStore');
+        const expenses = useExpenseStore.getState().getTotalExpensesByMonth(month, year);
+
+        return Math.max(0, ((income - expenses) / income) * 100);
+    },
+
+    getNetCashFlow: (month: number, year: number) => {
+        const income = get().getTotalIncomeByMonth(month, year);
+        const { useExpenseStore } = require('./expenseStore');
+        const expenses = useExpenseStore.getState().getTotalExpensesByMonth(month, year);
+        return income - expenses;
+    },
+
+    getAverageMonthlyIncome: (months: number) => {
+        const income = get().income;
+        if (income.length === 0) return 0;
+
+        const now = new Date();
+        let total = 0;
+        let monthsFound = 0;
+
+        for (let i = 0; i < months; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const m = d.getMonth() + 1;
+            const y = d.getFullYear();
+            const monthlyTotal = get().getTotalIncomeByMonth(m, y);
+            if (monthlyTotal > 0 || i === 0) {
+                total += monthlyTotal;
+                monthsFound++;
+            }
+        }
+
+        return monthsFound > 0 ? total / monthsFound : 0;
+    },
+
+    getLast6MonthsIncome: () => {
+        const result = [];
+        const now = new Date();
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const m = d.getMonth() + 1;
+            const y = d.getFullYear();
+            result.push({
+                month: m,
+                year: y,
+                monthName: monthNames[d.getMonth()],
+                total: get().getTotalIncomeByMonth(m, y)
+            });
+        }
+        return result;
     }
 }));

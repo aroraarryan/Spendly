@@ -129,3 +129,73 @@ export function calculateXIRR(
     if (totalOut === 0) return 0;
     return ((totalIn - totalOut) / totalOut) * 100;
 }
+
+// Calculate how much needs to be saved per month to hit target
+export function calculateMonthlyNeeded(
+    targetAmount: number,
+    savedAmount: number,
+    targetDate: string | null
+): number | null {
+    if (!targetDate || savedAmount >= targetAmount) return null;
+    
+    const target = new Date(targetDate);
+    const now = new Date();
+    
+    const years = target.getFullYear() - now.getFullYear();
+    const months = target.getMonth() - now.getMonth();
+    const monthsRemaining = years * 12 + months;
+    
+    if (monthsRemaining <= 0) return targetAmount - savedAmount;
+    
+    return (targetAmount - savedAmount) / monthsRemaining;
+}
+
+// Calculate projected completion date at current savings rate
+export function projectCompletionDate(
+    targetAmount: number,
+    savedAmount: number,
+    averageMonthlyContribution: number
+): string | null {
+    if (averageMonthlyContribution <= 0 || savedAmount >= targetAmount) return null;
+    
+    const remaining = targetAmount - savedAmount;
+    const monthsToGoal = Math.ceil(remaining / averageMonthlyContribution);
+    
+    const completionDate = new Date();
+    completionDate.setMonth(completionDate.getMonth() + monthsToGoal);
+    
+    return completionDate.toISOString();
+}
+
+// Check if goal is on track
+export function isGoalOnTrack(
+    targetAmount: number,
+    savedAmount: number,
+    createdAt: string,
+    targetDate: string
+): boolean {
+    const start = new Date(createdAt);
+    const end = new Date(targetDate);
+    const now = new Date();
+    
+    if (now >= end) return savedAmount >= targetAmount;
+    
+    const totalDuration = end.getTime() - start.getTime();
+    const elapsedDuration = now.getTime() - start.getTime();
+    
+    const expectedProgress = (elapsedDuration / totalDuration) * targetAmount;
+    return savedAmount >= expectedProgress;
+}
+
+// Format goal target date display
+export function formatGoalDeadline(targetDate: string | null): string {
+    if (!targetDate) return 'No deadline';
+    
+    const target = new Date(targetDate);
+    const now = new Date();
+    
+    if (target < now) return 'Overdue';
+    
+    return target.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+}
+

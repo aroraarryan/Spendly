@@ -2,7 +2,7 @@ export interface InsightReport {
     summary: string;
     warningAreas: string;
     actionableTips: string;
-    savingsGoal: string;
+    savingsGoalAdvice: string;
 }
 
 export interface ChatMessage {
@@ -48,6 +48,12 @@ export interface ExpenseContext {
         category: string;
         amount: number;
         interval: string;
+    }>;
+    savingsGoals: Array<{
+        name: string;
+        target: number;
+        saved: number;
+        deadline: string | undefined;
     }>;
 }
 

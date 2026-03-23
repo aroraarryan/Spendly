@@ -22,9 +22,15 @@ import FAB from '@/components/shared/FAB';
 import EmptyState from '@/components/shared/EmptyState';
 import NeoTag from '@/components/ui/NeoTag';
 import { Skeleton } from '@/components/shared/Skeleton';
-import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { useToast } from '@/hooks/useToast';
 import { GreetingHeader } from '@/components/auth/GreetingHeader';
+import IncomeSavingsCardHome from '@/components/home/IncomeSavingsCard';
+import SavingsGoalsCardHome from '@/components/home/SavingsGoalsCard';
+
+
+
+
+
 
 export default function HomeScreen() {
     const colors = useThemeColors();
@@ -295,6 +301,10 @@ export default function HomeScreen() {
                         onPrevMonth={() => changeMonth(-1)}
                         onNextMonth={() => changeMonth(1)}
                     />
+
+                    <IncomeSavingsCardHome />
+                    <SavingsGoalsCardHome />
+
 
                     {/* Categories Filter */}
                     <View style={{ marginTop: 32 }}>

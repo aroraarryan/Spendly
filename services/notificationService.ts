@@ -6,6 +6,7 @@ import { useExpenseStore } from '../store/expenseStore';
 import { useCategoryStore } from '../store/categoryStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useEventStore } from '../store/eventStore';
+import { useSavingsStore } from '../store/savingsStore';
 import { getCurrentMonthYear, getPreviousMonthName } from '../utils/analyticsHelpers';
 
 // Configure how notifications should be handled when the app is in the foreground
@@ -154,6 +155,44 @@ export const checkBudgetAlerts = async (month: number, year: number) => {
     }
 };
 
+export const checkSavingsMilestones = async () => {
+    const settings = useSettingsStore.getState();
+    if (!settings.notificationsEnabled) return;
+
+    const goals = useSavingsStore.getState().goals;
+    const { currencySymbol } = settings;
+
+    for (const goal of goals) {
+        if (goal.is_completed) continue;
+
+        const percent = (goal.saved_amount / goal.target_amount) * 100;
+        const milestones = [25, 50, 75, 100];
+        
+        for (const milestone of milestones) {
+            if (percent >= milestone) {
+                const key = `savings_milestone_${goal.id}_${milestone}`;
+                const alreadySent = await AsyncStorage.getItem(key);
+                
+                if (!alreadySent) {
+                    let title = '';
+                    let body = '';
+                    
+                    if (milestone === 100) {
+                        title = `🎉 Goal Achieved: ${goal.name}!`;
+                        body = `Congratulations! You've reached your target of ${currencySymbol}${goal.target_amount.toLocaleString()}. Time to celebrate! 🥂`;
+                    } else {
+                        title = `💪 ${milestone}% Reached: ${goal.name}`;
+                        body = `You're crushing it! You've saved ${currencySymbol}${goal.saved_amount.toLocaleString()} towards your ${goal.name} goal.`;
+                    }
+
+                    await sendInstantNotification(title, body, { screen: 'savings', goalId: goal.id });
+                    await AsyncStorage.setItem(key, 'true');
+                }
+            }
+        }
+    }
+};
+
 export const scheduleMonthlySummaryNotification = async () => {
     // Cancel existing
     const existingId = await AsyncStorage.getItem('monthly_summary_notif_id');
@@ -211,6 +250,42 @@ export const scheduleDailyReminder = async (enabled: boolean, hour: number, minu
     await AsyncStorage.setItem('daily_reminder_notif_id', id);
 };
 
+export const scheduleIncomeReminder = async (enabled: boolean) => {
+    // Cancel existing
+    const existingId = await AsyncStorage.getItem('income_reminder_notif_id');
+    if (existingId) {
+        await Notifications.cancelScheduledNotificationAsync(existingId);
+    }
+
+    if (!enabled) {
+        await AsyncStorage.removeItem('income_reminder_notif_id');
+        return;
+    }
+
+    const { getMonthName } = require('../utils/analyticsHelpers');
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthName = getMonthName(nextMonth.getMonth() + 1);
+
+    const id = await Notifications.scheduleNotificationAsync({
+        content: {
+            title: '💰 Log your income',
+            body: `Don't forget to log your ${monthName} income to track your savings rate`,
+            data: { screen: 'income' },
+            sound: 'default',
+        },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+            day: 1,
+            hour: 10,
+            minute: 0,
+            repeats: true,
+        } as Notifications.CalendarTriggerInput,
+    });
+
+    await AsyncStorage.setItem('income_reminder_notif_id', id);
+};
+
 export const sendInstantNotification = async (title: string, body: string, data?: any) => {
     await Notifications.scheduleNotificationAsync({
         content: {
@@ -228,6 +303,7 @@ export const cancelAllNotifications = async () => {
     const keys = [
         'monthly_summary_notif_id',
         'daily_reminder_notif_id',
+        'income_reminder_notif_id',
         'notifications_permission'
     ];
     // Also clear alert history keys if needed, but the prompt says 

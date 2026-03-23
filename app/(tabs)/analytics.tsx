@@ -24,6 +24,7 @@ import TopCategoriesList from '@/components/analytics/TopCategoriesList';
 import EmptyState from '@/components/shared/EmptyState';
 import { Skeleton } from '@/components/shared/Skeleton';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
+import IncomeExpenseChart from '@/components/analytics/IncomeExpenseChart';
 
 export default function AnalyticsScreen() {
     const colors = useThemeColors();
@@ -231,6 +232,11 @@ export default function AnalyticsScreen() {
                                     month={currentMonth}
                                     year={currentYear}
                                 />
+                            </View>
+
+                            <View style={styles.section}>
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>Income vs Expenses</Text>
+                                <IncomeExpenseChart />
                             </View>
 
                             <View style={styles.section}>

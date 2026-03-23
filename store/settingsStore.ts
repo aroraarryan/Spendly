@@ -15,6 +15,8 @@ interface SettingsState {
     themePreference: 'light' | 'dark' | 'system';
     budgetResetDay: number;
     compactMode: boolean;
+    incomeReminderEnabled: boolean;
+
 
     setCurrency: (currency: string, symbol: string) => Promise<void>;
     setCurrencySymbol: (symbol: string) => Promise<void>;
@@ -27,6 +29,8 @@ interface SettingsState {
     setThemePreference: (theme: 'light' | 'dark' | 'system') => Promise<void>;
     setBudgetResetDay: (day: number) => Promise<void>;
     setCompactMode: (bool: boolean) => Promise<void>;
+    setIncomeReminderEnabled: (enabled: boolean) => Promise<void>;
+
     loadSettings: () => Promise<void>;
     resetSettings: () => Promise<void>;
 }
@@ -44,6 +48,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     themePreference: 'system',
     budgetResetDay: 1,
     compactMode: false,
+    incomeReminderEnabled: true,
+
 
     setCurrency: async (currency, symbol) => {
         await AsyncStorage.setItem('currency', currency);
@@ -94,6 +100,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         await AsyncStorage.setItem('compactMode', bool.toString());
         set({ compactMode: bool });
     },
+    setIncomeReminderEnabled: async (enabled) => {
+        await AsyncStorage.setItem('incomeReminderEnabled', enabled.toString());
+        set({ incomeReminderEnabled: enabled });
+    },
     loadSettings: async () => {
         try {
             const [
@@ -108,7 +118,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                 dailyReminderMinute,
                 themePreference,
                 budgetResetDay,
-                compactMode
+                compactMode,
+                incomeReminderEnabled
             ] = await Promise.all([
                 AsyncStorage.getItem('currency'),
                 AsyncStorage.getItem('currencySymbol'),
@@ -121,7 +132,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                 AsyncStorage.getItem('dailyReminderMinute'),
                 AsyncStorage.getItem('themePreference'),
                 AsyncStorage.getItem('budgetResetDay'),
-                AsyncStorage.getItem('compactMode')
+                AsyncStorage.getItem('compactMode'),
+                AsyncStorage.getItem('incomeReminderEnabled')
             ]);
 
             set({
@@ -137,6 +149,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                 themePreference: (themePreference as 'light' | 'dark' | 'system') ?? 'system',
                 budgetResetDay: budgetResetDay ? parseInt(budgetResetDay) : 1,
                 compactMode: compactMode === 'true',
+                incomeReminderEnabled: incomeReminderEnabled === null ? true : incomeReminderEnabled === 'true',
             });
         } catch (e) {
             console.error("Failed to load settings from AsyncStorage", e);
@@ -148,7 +161,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             'notificationsEnabled', 'budgetAlertsEnabled',
             'monthlySummaryEnabled', 'dailyReminderEnabled',
             'dailyReminderHour', 'dailyReminderMinute',
-            'themePreference', 'budgetResetDay', 'compactMode'
+            'themePreference', 'budgetResetDay', 'compactMode', 'incomeReminderEnabled'
         ];
         await AsyncStorage.multiRemove(keys);
         set({
@@ -164,6 +177,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             themePreference: 'system',
             budgetResetDay: 1,
             compactMode: false,
+            incomeReminderEnabled: true,
         });
     }
 }));

@@ -376,11 +376,11 @@ export default function AIInsightsScreen() {
                                     />
                                 )}
 
-                                {report.savingsGoal && (
+                                {report.savingsGoalAdvice && (
                                     <InsightCard
                                         title="Savings Goal"
                                         emoji="🎯"
-                                        content={report.savingsGoal}
+                                        content={report.savingsGoalAdvice}
                                         backgroundColor="#F3E8FF"
                                         accentColor="#D1C4E9"
                                         isSavingsGoal

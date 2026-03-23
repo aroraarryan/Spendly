@@ -28,7 +28,7 @@ interface ExpenseState {
     getExpensesByMonth: (month: number, year: number) => ExpenseRow[];
     getExpensesByCategory: (categoryId: string, month: number, year: number) => ExpenseRow[];
     getExpensesByEvent: (eventId: string) => ExpenseRow[];
-    getTotalByMonth: (month: number, year: number) => number;
+    getTotalExpensesByMonth: (month: number, year: number) => number;
     getTotalByCategory: (categoryId: string, month: number, year: number) => number;
     clearExpenses: () => Promise<void>;
     reloadExpenses: () => Promise<void>;
@@ -87,7 +87,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     getExpensesByEvent: (eventId) => {
         return get().expenses.filter(e => e.event_id === eventId);
     },
-    getTotalByMonth: (month, year) => {
+    getTotalExpensesByMonth: (month: number, year: number) => {
         const prefix = `${year}-${String(month).padStart(2, '0')}`;
         return get().expenses
             .filter(e => e.date.startsWith(prefix))
